@@ -1,0 +1,15 @@
+[book]
+authors = ["mia", "julia"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Jumia Design"
+
+[rust]
+edition = "2021"
+
+[output.html]
+default-theme = "discord"
+preferred-dark-theme = "discord"
+additional-css = ["theme.css"]
+additional-js = ["theme.js"]

@@ -1,0 +1,41 @@
+.discord {
+    --bg: #2C2F33;
+    --fg: #DDD;
+
+    --sidebar-bg: #23272A;
+    --sidebar-fg: #DDD;
+    --sidebar-non-existant: #505274;
+    --sidebar-active: #5865F2;
+    --sidebar-spacer: #DDD;
+
+    --scrollbar: var(--sidebar-fg);
+
+    --icons: #99AAB5;
+    --icons-hover: #5865F2;
+
+    --links: #5865F2;
+
+    --inline-code-color: #c5c8c6;
+
+    --quote-bg: hsl(226, 15%, 17%);
+    --quote-border: hsl(226, 15%, 22%);
+
+    --table-border-color: #99AAB5;
+    --table-header-bg: #99AAB5;
+    --table-alternate-bg: #23272A;
+
+    --searchbar-border-color: #7289DA;
+    --searchbar-bg: #23272A;
+    --searchbar-fg: #DDD;
+    --searchbar-shadow-color: #7289DA;
+    --searchresults-header-fg: #DDD;
+    --searchresults-border-color: #DDD;
+    --searchresults-li-bg: #DDD;
+    --search-mark-bg: #23272A;
+}
+
+/* because having this be in the theme definition would make too much sense */
+.hljs {
+    background: #23272A;
+    color: #c5c8c6;
+}
