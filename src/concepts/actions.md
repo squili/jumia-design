@@ -24,7 +24,7 @@ trait Action {
 ### Example
 ```rust
 async fn example(client: &Client) {
-    let new_channel = CreateGuildChannel::category()
+    let _new_channel = CreateGuildChannel::category()
         .name("Category Channel")
         .create_channel(|builder| {
             builder

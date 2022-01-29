@@ -4,8 +4,8 @@ Most things in Jumia are created using builders. This is especially the case for
 
 ### Conversion
 
-In order to keep the builders ergonomic, many converter traits are utilized. For example,
-these are all valid usages of the `CreateOverwrite` builder, through the `Into<RoleId>` trait.
+In order to keep the builders ergonomic, many converter traits are utilized. For example, these are all valid usages of
+the `CreateOverwrite` builder, through the `Into<RoleId>` trait.
 
 ```rust
 fn example(some_role: Role, an_id: RoleId) {
@@ -26,3 +26,4 @@ fn example(some_role: Role, an_id: RoleId) {
 ### Todo
 - Look into how rustc optimizes builders
 - Decide whether to accept actions and make the conversion asynchronous
+  - Potentially more overhead - these conversions should be happening multiple times per action
