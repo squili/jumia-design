@@ -20,7 +20,7 @@ async fn example() {
                                 .name("text")
                                 .kind(OptionKind::String)
                         })
-                        .callback(async |client, interaction, args| {
+                        .callback(|client, interaction, args| async move {
                             interaction.reply(client, args.get_string("text")).await.unwrap();
                             Ok(())
                         })
@@ -37,6 +37,7 @@ async fn callback(_client: Client, _interaction: Interaction, _args: CommandArgs
 
 ### Todo:
 - Make it less wide
+  - Directly expose builders instead of using callbacks
 - Should we be using a result type
 - Can we support callbacks that don't have args (trait bullshit?)
 
@@ -75,4 +76,23 @@ Instead of doing fancy middleware stuff using a builder pattern, you can use som
 While discord's new permissions system is fancy, it doesn't have all the stuff some bots need. For example, you can't
 have subcommand-specific permissions. The problem is that we would need the developer to provide some custom
 implementation for persisting permissions data - and I definitely don't want to solve this by adding SQLx to the
-crate dependencies
+crate dependencies. Julia provided this idea, a trait that the user would implement:
+
+```rust
+enum StorageKey {
+    Permission(String),
+    // Other persistent data, maybe resumable shards?
+}
+
+enum StorageValue {
+    // ...
+}
+
+#[async_trait]
+trait Storage {
+    type Ok;
+    type Err;
+    async fn get(key: StorageKey) -> Result<Ok, Err>;
+    async fn set(key: StorageKey, value: StorageValue) -> Result<Ok, Err>;
+}
+```
