@@ -1,75 +1,54 @@
 # Commands
 
-###### Draft - consider alternate ideas
-
-In Jumia, application commands are a first class feature. You can easily register commands using builder patterns and
-set callbacks for them.
-
-### Example
+This is an example of an implementation of a command
 
 ```rust
-async fn example() {
+// library code
+trait CommandCallback<E: Into<JumiaError>> {
+    async fn call(&self, client: &Client, interaction: &Interaction, args: &CommandArgs) -> Result<(), E>;
+}
+
+impl<E, F> CommandCallback<E> for F
+where 
+    E: Into<JumiaError>,
+    F: Fn(&Client, &Interaction, &CommandArgs) -> Result<(), BotError>,
+{
+    async fn call(&self, client: &Client, interaction: &Interaction, args: &CommandArgs) -> Result<(), E> {
+        self(client, interaction, args)
+    }
+}
+
+// either library or user code
+fn guild_only(callback: impl CommandCallback) -> impl CommandCallback {
+    |client, interaction, args| async move {
+        if interaction.guild_id.is_none() {
+            interaction.reply(client, "Command must be run in guild").await?;
+        } else {
+            callback(client, interaction, args).await?;
+        }
+    }
+}
+
+// user code
+async fn echo_command(client: Client, interaction: Interaction, args: CommandArgs) -> Result<(), BotError> {
+    interaction.reply(client, args.get_string("text")).await?;
+    Ok(())
+}
+
+fn example() {
     Client::builder()
-        .commands(|builder| {
-            builder
-                .add(|builder| {
-                    builder
-                        .name("echo")
-                        .option(|builder| {
-                            builder
-                                .name("text")
-                                .kind(OptionKind::String)
-                        })
-                        .callback(|client, interaction, args| async move {
-                            interaction.reply(client, args.get_string("text")).await.unwrap();
-                            Ok(())
-                        })
-                })
+        .commands(|commands| {
+            commands
+                .add(CommandBuilder::new()
+                    .name("echo")
+                    .option(OptionBuilder::new()
+                        .name("text")
+                        .kind(OptionKind::String))
+                    .callback(guild_only(echo_command))
+                )
         });
 }
 ```
-
-### Callback template
-
-```rust
-async fn callback(_client: Client, _interaction: Interaction, _args: CommandArgs) -> Result<(), JumiaError> {}
-```
-
-### Todo:
-- Make it less wide
-  - Directly expose builders instead of using callbacks
-- Should we be using a result type
-- Can we support callbacks that don't have args (trait bullshit?)
-
-## More ideas
-
-### Macro builder
-
-Talk to Julia about her design
-
-### Derive macros
-
-Look at serenity's framework system
-- Hard
-- Future goal
-
-### Pure router
-
-Instead of defining the commands and callbacks in the same place, just have a router
-- Easier middleware support
-- Can steal designs from warp/axum, maybe even tower
-- Separating the two could be harder to reason about
-  - Can't easily check stuff at runtime
-  - Need to add stuff to two different locations to add command
-
-### Wrappers for middleware
-
-Instead of doing fancy middleware stuff using a builder pattern, you can use something like
-`GuildOnly::wrap(callback)` or `guild_only(callback)`
-- Should be fairly easy to do
-- Natural for people used to functional programming
-  - Unnatural for others
-- Could end up repetitive
 
 ### Permissions
 
@@ -96,3 +75,10 @@ trait Storage {
     async fn set(key: StorageKey, value: StorageValue) -> Result<Ok, Err>;
 }
 ```
+
+Maybe this could be some sort of extension crate?
+
+### Notes
+- Decl macro style definitions don't really fit into the style of Jumia
+- Derive macros are a future goal
+- Pure router style isn't very good
