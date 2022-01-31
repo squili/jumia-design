@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Commands - Jumia Design</title>
+        <title>Storage - Jumia Design</title>
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../overview.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Concepts</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="../concepts/actions.html"><strong aria-hidden="true">2.1.</strong> Actions</a></li><li class="chapter-item expanded "><a href="../concepts/builders.html"><strong aria-hidden="true">2.2.</strong> Builders</a></li><li class="chapter-item expanded "><a href="../concepts/commands.html" class="active"><strong aria-hidden="true">2.3.</strong> Commands</a></li><li class="chapter-item expanded "><a href="../concepts/storage.html"><strong aria-hidden="true">2.4.</strong> Storage</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Actions</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="../actions/create_role.html"><strong aria-hidden="true">3.1.</strong> Create Role</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../overview.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">2.</strong> Concepts</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="../concepts/actions.html"><strong aria-hidden="true">2.1.</strong> Actions</a></li><li class="chapter-item expanded "><a href="../concepts/builders.html"><strong aria-hidden="true">2.2.</strong> Builders</a></li><li class="chapter-item expanded "><a href="../concepts/commands.html"><strong aria-hidden="true">2.3.</strong> Commands</a></li><li class="chapter-item expanded "><a href="../concepts/storage.html" class="active"><strong aria-hidden="true">2.4.</strong> Storage</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> Actions</div></li><li><ol class="section"><li class="chapter-item expanded "><a href="../actions/create_role.html"><strong aria-hidden="true">3.1.</strong> Create Role</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -135,100 +135,56 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="commands"><a class="header" href="#commands">Commands</a></h1>
-<p>This is an example of an implementation of a command</p>
-<pre><pre class="playground"><code class="language-rust edition2021">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// library code
-trait CommandCallback&lt;E: Into&lt;JumiaError&gt;&gt; {
-    async fn call(&amp;self, client: &amp;Client, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), E&gt;;
-}
-
-impl&lt;E, F&gt; CommandCallback&lt;E&gt; for F
-where 
-    E: Into&lt;JumiaError&gt;,
-    F: Fn(&amp;Client, &amp;Interaction, &amp;CommandArgs) -&gt; Result&lt;(), BotError&gt;,
-{
-    async fn call(&amp;self, client: &amp;Client, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), E&gt; {
-        self(client, interaction, args)
-    }
-}
-
-// either library or user code
-fn guild_only(callback: impl CommandCallback) -&gt; impl CommandCallback {
-    |client, interaction, args| async move {
-        if interaction.guild_id.is_none() {
-            interaction.reply(client, &quot;Command must be run in guild&quot;).await?;
-        } else {
-            callback(client, interaction, args).await?;
-        }
-    }
-}
-
-// user code
-async fn echo_command(client: Client, interaction: Interaction, args: CommandArgs) -&gt; Result&lt;(), BotError&gt; {
-    interaction.reply(client, args.get_string(&quot;text&quot;)).await?;
-    Ok(())
-}
-
-fn example() {
-    Client::builder()
-        .commands(|commands| {
-            commands
-                .add(CommandBuilder::new()
-                    .name(&quot;echo&quot;)
-                    .option(OptionBuilder::new()
-                        .name(&quot;text&quot;)
-                        .kind(OptionKind::String))
-                    .callback(guild_only(echo_command))
-                )
-        });
-}
-<span class="boring">}
-</span></code></pre></pre>
-<h3 id="permissions"><a class="header" href="#permissions">Permissions</a></h3>
-<p>While discord's new permissions system is fancy, it doesn't have all the stuff some bots need. For example, you can't
-have subcommand-specific permissions. The problem is that we would need the developer to provide some custom
-implementation for persisting permissions data - and I definitely don't want to solve this by adding SQLx to the
-crate dependencies. Julia provided this idea, a trait that the user would implement:</p>
+                        <h1 id="storage"><a class="header" href="#storage">Storage</a></h1>
+<p>It would be nice to store some data persistently. There are three main options for this:</p>
+<h3 id="1-redis"><a class="header" href="#1-redis">1. Redis</a></h3>
+<p>You supply the library with a link to redis, and it does everything on its own</p>
+<ul>
+<li>Requires users to run a redis server</li>
+</ul>
+<h3 id="2-trait"><a class="header" href="#2-trait">2. Trait</a></h3>
+<p>You supply an implementation of the Storage trait. This trait probably needs someone else to look at it</p>
 <pre><pre class="playground"><code class="language-rust edition2021">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum StorageKey {
     Permission(String),
-    // Other persistent data, maybe resumable shards?
+    Resumable([u64; 2]),
 }
 
-enum StorageValue {
-    // ...
-}
-
-#[async_trait]
 trait Storage {
-    type Ok;
-    type Err;
-    async fn get(key: StorageKey) -&gt; Result&lt;Ok, Err&gt;;
-    async fn set(key: StorageKey, value: StorageValue) -&gt; Result&lt;Ok, Err&gt;;
+    type Error: Error;
+    async fn get(key: StorageKey) -&gt; Result&lt;&amp;dyn Deserialize, Self::Error&gt;;
+    async fn set(key: StorageKey, value: &amp;dyn Serialize) -&gt; Result&lt;(), Self::Error&gt;;
+    
+    // for clearing out old data
+    async fn delete(key: StorageKey) -&gt; Result&lt;(), Self::Error&gt;;
+    async fn iter() -&gt; Result&lt;HashMap&lt;StorageKey, &amp;dyn Deserialize&gt;, Self::Error&gt;;
 }
 <span class="boring">}
 </span></code></pre></pre>
-<p>Maybe this could be some sort of extension crate?</p>
-<h3 id="notes"><a class="header" href="#notes">Notes</a></h3>
 <ul>
-<li>Decl macro style definitions don't really fit into the style of Jumia</li>
-<li>Derive macros are a future goal</li>
-<li>Pure router style isn't very good</li>
+<li>Very flexible</li>
+<li>Requires user to implement a storage backend</li>
+<li>Adding storage keys is a breaking change</li>
+</ul>
+<h3 id="3-file"><a class="header" href="#3-file">3. File</a></h3>
+<p>Some sort of persistent local storage - like RON or Structsy - is used to save the data. This could also be supplied as
+an additional crate that implements a storage backend for these types for users who don't want to implement the Storage
+trait themselves</p>
+<ul>
+<li>Very easy for users</li>
+<li>Makes a random file on disc - might be confusing</li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../concepts/builders.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../concepts/commands.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
-                            <a rel="next" href="../concepts/storage.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../actions/create_role.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         <div style="clear: both"></div>
@@ -237,10 +193,10 @@ trait Storage {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../concepts/builders.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../concepts/commands.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
-                    <a rel="next" href="../concepts/storage.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="../actions/create_role.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
