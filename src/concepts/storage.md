@@ -1,41 +1,39 @@
 # Storage
 
-It would be nice to store some data persistently. There are three main options for this:
+Jumia has a persistence system that allows pre-built systems to use persistent data without significant user
+configuration. An example of this can be found
+[in the examples](https://github.com/squili/jumia-design/blob/main/examples/storage/src/main.rs).
 
-### 1. Redis
+### Traits
 
-You supply the library with a link to redis, and it does everything on its own
-- Requires users to run a redis server
-
-### 2. Trait
-
-You supply an implementation of the Storage trait. This trait probably needs someone else to look at it
+There are two traits that the storage system uses. The storage backend must implement the `StorageBackend` trait. A
+storage key must implement the `StorageKey` trait.
 
 ```rust
-enum StorageKey {
-    Permission(String),
-    Resumable([u64; 2]),
+trait StorageKey {
+    const ID: &'static str;
+    type Value: DeserializeOwned + Serialize + Send;
+
+    fn get_key(self) -> String;
 }
 
-trait Storage {
-    type Error: Error;
-    async fn get(key: StorageKey) -> Result<&dyn Deserialize, Self::Error>;
-    async fn set(key: StorageKey, value: &dyn Serialize) -> Result<(), Self::Error>;
-    
-    // for clearing out old data
-    async fn delete(key: StorageKey) -> Result<(), Self::Error>;
-    async fn iter() -> Result<HashMap<StorageKey, &dyn Deserialize>, Self::Error>;
+trait StorageBackend: Sized {
+    type Error: std::error::Error;
+
+    async fn register<K: StorageKey + Send>(&self) -> Result<(), Self::Error>;
+    async fn get<K: StorageKey + Send>(&self, key: K) -> Result<Option<K::Value>, Self::Error>;
+    async fn set<K: StorageKey + Send>(&self, key: K, value: K::Value) -> Result<(), Self::Error>;
 }
 ```
 
-- Very flexible
-- Requires user to implement a storage backend
-- Adding storage keys is a breaking change
+### Provided
 
-### 3. File
+A user implementing this system, especially for a more complex backend, could take an evening. Instead, Jumia will
+provide some default implementations - file and redis (and maybe etcd)
 
-Some sort of persistent local storage - like RON or Structsy - is used to save the data. This could also be supplied as
-an additional crate that implements a storage backend for these types for users who don't want to implement the Storage
-trait themselves
-- Very easy for users
-- Makes a random file on disc - might be confusing
+### Extensible
+
+This extensible system means that anyone can write an addon system that will use a centralized persistent data system.
+For example, a custom permission system could just need a `Permission` struct supplied with a storage backend and
+provide a wrapper function. For the library user, this is very simple and easy. Another example is resumable sessions.
+Currently, no library automatically supports resumable sessions, but it'd be really cool to automatically load those.

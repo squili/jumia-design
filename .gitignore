@@ -1,2 +1,4 @@
 /book/
 /.idea/
+/examples/*/target/
+/examples/*/Cargo.lock
