@@ -268,80 +268,47 @@ fn example() {
 }
 <span class="boring">}
 </span></code></pre></pre>
-<h3 id="permissions"><a class="header" href="#permissions">Permissions</a></h3>
-<p>While discord's new permissions system is fancy, it doesn't have all the stuff some bots need. For example, you can't
-have subcommand-specific permissions. The problem is that we would need the developer to provide some custom
-implementation for persisting permissions data - and I definitely don't want to solve this by adding SQLx to the
-crate dependencies. Julia provided this idea, a trait that the user would implement:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>enum StorageKey {
-    Permission(String),
-    // Other persistent data, maybe resumable shards?
-}
-
-enum StorageValue {
-    // ...
-}
-
-#[async_trait]
-trait Storage {
-    type Ok;
-    type Err;
-    async fn get(key: StorageKey) -&gt; Result&lt;Ok, Err&gt;;
-    async fn set(key: StorageKey, value: StorageValue) -&gt; Result&lt;Ok, Err&gt;;
-}
-<span class="boring">}
-</span></code></pre></pre>
-<p>Maybe this could be some sort of extension crate?</p>
 <h3 id="notes-1"><a class="header" href="#notes-1">Notes</a></h3>
 <ul>
 <li>Decl macro style definitions don't really fit into the style of Jumia</li>
 <li>Derive macros are a future goal</li>
 <li>Pure router style isn't very good</li>
+<li>Custom permission system using storage</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="storage"><a class="header" href="#storage">Storage</a></h1>
-<p>It would be nice to store some data persistently. There are three main options for this:</p>
-<h3 id="1-redis"><a class="header" href="#1-redis">1. Redis</a></h3>
-<p>You supply the library with a link to redis, and it does everything on its own</p>
-<ul>
-<li>Requires users to run a redis server</li>
-</ul>
-<h3 id="2-trait"><a class="header" href="#2-trait">2. Trait</a></h3>
-<p>You supply an implementation of the Storage trait. This trait probably needs someone else to look at it</p>
+<p>Jumia has a persistence system that allows pre-built systems to use persistent data without significant user
+configuration. An example of this can be found
+<a href="https://github.com/squili/jumia-design/blob/main/examples/storage/src/main.rs">in the examples</a>.</p>
+<h3 id="traits"><a class="header" href="#traits">Traits</a></h3>
+<p>There are two traits that the storage system uses. The storage backend must implement the <code>StorageBackend</code> trait. A
+storage key must implement the <code>StorageKey</code> trait.</p>
 <pre><pre class="playground"><code class="language-rust edition2021">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>enum StorageKey {
-    Permission(String),
-    Resumable([u64; 2]),
+</span>trait StorageKey {
+    const ID: &amp;'static str;
+    type Value: DeserializeOwned + Serialize + Send;
+
+    fn get_key(self) -&gt; String;
 }
 
-trait Storage {
-    type Error: Error;
-    async fn get(key: StorageKey) -&gt; Result&lt;&amp;dyn Deserialize, Self::Error&gt;;
-    async fn set(key: StorageKey, value: &amp;dyn Serialize) -&gt; Result&lt;(), Self::Error&gt;;
-    
-    // for clearing out old data
-    async fn delete(key: StorageKey) -&gt; Result&lt;(), Self::Error&gt;;
-    async fn iter() -&gt; Result&lt;HashMap&lt;StorageKey, &amp;dyn Deserialize&gt;, Self::Error&gt;;
+trait StorageBackend: Sized {
+    type Error: std::error::Error;
+
+    async fn register&lt;K: StorageKey + Send&gt;(&amp;self) -&gt; Result&lt;(), Self::Error&gt;;
+    async fn get&lt;K: StorageKey + Send&gt;(&amp;self, key: K) -&gt; Result&lt;Option&lt;K::Value&gt;, Self::Error&gt;;
+    async fn set&lt;K: StorageKey + Send&gt;(&amp;self, key: K, value: K::Value) -&gt; Result&lt;(), Self::Error&gt;;
 }
 <span class="boring">}
 </span></code></pre></pre>
-<ul>
-<li>Very flexible</li>
-<li>Requires user to implement a storage backend</li>
-<li>Adding storage keys is a breaking change</li>
-</ul>
-<h3 id="3-file"><a class="header" href="#3-file">3. File</a></h3>
-<p>Some sort of persistent local storage - like RON or Structsy - is used to save the data. This could also be supplied as
-an additional crate that implements a storage backend for these types for users who don't want to implement the Storage
-trait themselves</p>
-<ul>
-<li>Very easy for users</li>
-<li>Makes a random file on disc - might be confusing</li>
-</ul>
+<h3 id="provided"><a class="header" href="#provided">Provided</a></h3>
+<p>A user implementing this system, especially for a more complex backend, could take an evening. Instead, Jumia will
+provide some default implementations - file and redis (and maybe etcd)</p>
+<h3 id="extensible"><a class="header" href="#extensible">Extensible</a></h3>
+<p>This extensible system means that anyone can write an addon system that will use a centralized persistent data system.
+For example, a custom permission system could just need a <code>Permission</code> struct supplied with a storage backend and
+provide a wrapper function. For the library user, this is very simple and easy. Another example is resumable sessions.
+Currently, no library automatically supports resumable sessions, but it'd be really cool to automatically load those.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="create-role"><a class="header" href="#create-role">Create Role</a></h1>
 <p>This will be the definition of the <code>CreateRole</code> action once actions are finalized</p>
 <h6 id="todo-1"><a class="header" href="#todo-1">TODO</a></h6>

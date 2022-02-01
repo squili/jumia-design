@@ -187,38 +187,12 @@ fn example() {
 }
 <span class="boring">}
 </span></code></pre></pre>
-<h3 id="permissions"><a class="header" href="#permissions">Permissions</a></h3>
-<p>While discord's new permissions system is fancy, it doesn't have all the stuff some bots need. For example, you can't
-have subcommand-specific permissions. The problem is that we would need the developer to provide some custom
-implementation for persisting permissions data - and I definitely don't want to solve this by adding SQLx to the
-crate dependencies. Julia provided this idea, a trait that the user would implement:</p>
-<pre><pre class="playground"><code class="language-rust edition2021">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>enum StorageKey {
-    Permission(String),
-    // Other persistent data, maybe resumable shards?
-}
-
-enum StorageValue {
-    // ...
-}
-
-#[async_trait]
-trait Storage {
-    type Ok;
-    type Err;
-    async fn get(key: StorageKey) -&gt; Result&lt;Ok, Err&gt;;
-    async fn set(key: StorageKey, value: StorageValue) -&gt; Result&lt;Ok, Err&gt;;
-}
-<span class="boring">}
-</span></code></pre></pre>
-<p>Maybe this could be some sort of extension crate?</p>
 <h3 id="notes"><a class="header" href="#notes">Notes</a></h3>
 <ul>
 <li>Decl macro style definitions don't really fit into the style of Jumia</li>
 <li>Derive macros are a future goal</li>
 <li>Pure router style isn't very good</li>
+<li>Custom permission system using storage</li>
 </ul>
 
                     </main>
