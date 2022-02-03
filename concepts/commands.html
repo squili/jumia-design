@@ -174,16 +174,15 @@ async fn echo_command(client: Client, interaction: Interaction, args: CommandArg
 
 fn example() {
     Client::builder()
-        .commands(|commands| {
-            commands
-                .add(CommandBuilder::new()
-                    .name(&quot;echo&quot;)
-                    .option(OptionBuilder::new()
-                        .name(&quot;text&quot;)
-                        .kind(OptionKind::String))
-                    .callback(guild_only(echo_command))
-                )
-        });
+        .command(
+            // there could probably be a better way of formatting this, but for now it's good enough
+            CommandBuilder::new()
+                .name(&quot;echo&quot;)
+                .option(OptionBuilder::new()
+                    .name(&quot;text&quot;)
+                    .kind(OptionKind::String))
+                .callback(guild_only(echo_command))
+        );
 }
 <span class="boring">}
 </span></code></pre></pre>

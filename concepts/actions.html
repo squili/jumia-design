@@ -165,11 +165,7 @@
 </span>async fn example(client: &amp;Client) {
     let _new_channel = CreateGuildChannel::category()
         .name(&quot;Category Channel&quot;)
-        .create_channel(|builder| {
-            builder
-                .kind(ChannelKind::Text)
-                .name(&quot;text-channel&quot;)
-        })
+        .create_channel(CreateGuildChannel::text().name(&quot;text-channel&quot;))
         .run(client)
         .await
         .unwrap();

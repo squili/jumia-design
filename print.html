@@ -139,7 +139,11 @@
                         <h1 id="overview"><a class="header" href="#overview">Overview</a></h1>
 <p>Jumia is a Discord library for Rust built around a builder model that attempts to provide medium-sized bots with a very
 easy framework to develop without making too much infrastructure.</p>
-<p>Everything that is added must have consideration to its design. This is the purpose of the Jumia design docs.</p>
+<p>Jumia will be a wrapper around another library to prevent fragmentation - but it will hopefully be an easy experience.</p>
+<h3 id="alternatives"><a class="header" href="#alternatives">Alternatives</a></h3>
+<p>I've looked at Poise, and I'm personally not much of a fan of the design ideas.</p>
+<p>You could also just use base Serenity, but there is a lot of infrastructure that you have to build up before you can get
+to actually implementing stuff. We hope to provide this built in.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="actions"><a class="header" href="#actions">Actions</a></h1>
 <p>Actions are how you do things in Jumia. They must implement the <code>Action</code> trait.</p>
 <h3 id="trait"><a class="header" href="#trait">Trait</a></h3>
@@ -170,11 +174,7 @@ easy framework to develop without making too much infrastructure.</p>
 </span>async fn example(client: &amp;Client) {
     let _new_channel = CreateGuildChannel::category()
         .name(&quot;Category Channel&quot;)
-        .create_channel(|builder| {
-            builder
-                .kind(ChannelKind::Text)
-                .name(&quot;text-channel&quot;)
-        })
+        .create_channel(CreateGuildChannel::text().name(&quot;text-channel&quot;))
         .run(client)
         .await
         .unwrap();
@@ -211,11 +211,6 @@ the <code>CreateOverwrite</code> builder, through the <code>Into&lt;RoleId&gt;</
 <h3 id="todo"><a class="header" href="#todo">Todo</a></h3>
 <ul>
 <li>Look into how rustc optimizes builders</li>
-<li>Decide whether to accept actions and make the conversion asynchronous
-<ul>
-<li>Potentially more overhead - these conversions should be happening multiple times per action</li>
-</ul>
-</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="commands"><a class="header" href="#commands">Commands</a></h1>
 <p>This is an example of an implementation of a command</p>
@@ -256,16 +251,15 @@ async fn echo_command(client: Client, interaction: Interaction, args: CommandArg
 
 fn example() {
     Client::builder()
-        .commands(|commands| {
-            commands
-                .add(CommandBuilder::new()
-                    .name(&quot;echo&quot;)
-                    .option(OptionBuilder::new()
-                        .name(&quot;text&quot;)
-                        .kind(OptionKind::String))
-                    .callback(guild_only(echo_command))
-                )
-        });
+        .command(
+            // there could probably be a better way of formatting this, but for now it's good enough
+            CommandBuilder::new()
+                .name(&quot;echo&quot;)
+                .option(OptionBuilder::new()
+                    .name(&quot;text&quot;)
+                    .kind(OptionKind::String))
+                .callback(guild_only(echo_command))
+        );
 }
 <span class="boring">}
 </span></code></pre></pre>
