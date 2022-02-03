@@ -25,5 +25,3 @@ fn example(some_role: Role, an_id: RoleId) {
 
 ### Todo
 - Look into how rustc optimizes builders
-- Decide whether to accept actions and make the conversion asynchronous
-  - Potentially more overhead - these conversions should be happening multiple times per action

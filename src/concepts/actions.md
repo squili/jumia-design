@@ -26,11 +26,7 @@ trait Action {
 async fn example(client: &Client) {
     let _new_channel = CreateGuildChannel::category()
         .name("Category Channel")
-        .create_channel(|builder| {
-            builder
-                .kind(ChannelKind::Text)
-                .name("text-channel")
-        })
+        .create_channel(CreateGuildChannel::text().name("text-channel"))
         .run(client)
         .await
         .unwrap();
