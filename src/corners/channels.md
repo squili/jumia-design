@@ -23,27 +23,20 @@ Twilight has a similar system, but with different grouping and the guild channel
   - Stage
 - Private
 
+### Solution
 
-### Choices
+#### Extras
 
-this kinda enum:
+Some special channels have a function that returns an `Option<Extra>` with the added data. I need to check which extra
+data news/store has over text and see if I can just merge them with a kind field.
 
-Channel
+#### Enum
+
 - Guild
-  - Text
-    - Normal
-    - Store
-    - News
-  - Voice
-    - Stage
-    - NotStage
+  - Text (kind field)
+  - Voice (extra field)
   - Thread
   - Category
 - Private
   - DirectMessage
   - Group
-
-or like
-
-Channel
-- Everything

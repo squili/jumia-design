@@ -55,3 +55,4 @@ fn example() {
 - Derive macros are a future goal
 - Pure router style isn't very good
 - Custom permission system using storage
+- Arg parsing using system similar to serenity-slash-decode

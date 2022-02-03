@@ -117,6 +117,9 @@ impl StorageKey for TestKey {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // make sure the file isn't there
+    tokio::fs::remove_file("test_storage.json").await?;
+
     {
         // store data into storage
         println!("opening");

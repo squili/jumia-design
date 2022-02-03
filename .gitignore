@@ -2,3 +2,4 @@
 /.idea/
 /examples/*/target/
 /examples/*/Cargo.lock
+/examples/storage/test_storage.json
