@@ -218,15 +218,20 @@ the <code>CreateOverwrite</code> builder, through the <code>Into&lt;RoleId&gt;</
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// library code
-trait CommandCallback&lt;E: Into&lt;JumiaError&gt;&gt; {
-    async fn call(&amp;self, client: &amp;Client, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), E&gt;;
+trait CommandCallback {
+    type Error: Into&lt;JumiaError&gt;;
+
+    async fn call(&amp;self, client: &amp;Client, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), Self::Error&gt;;
 }
 
-impl&lt;E, F&gt; CommandCallback&lt;E&gt; for F
-where 
+impl&lt;E, F, G&gt; CommandCallback for F
+where
     E: Into&lt;JumiaError&gt;,
-    F: Fn(&amp;Client, &amp;Interaction, &amp;CommandArgs) -&gt; Result&lt;(), BotError&gt;,
+    F: Fn(&amp;Client, &amp;Interaction, &amp;CommandArgs) -&gt; G,
+    G: Future&lt;Output = Result&lt;(), E&gt;&gt;,
 {
+    type Error = E;
+
     async fn call(&amp;self, client: &amp;Client, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), E&gt; {
         self(client, interaction, args)
     }
