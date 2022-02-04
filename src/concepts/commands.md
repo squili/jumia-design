@@ -4,15 +4,20 @@ This is an example of an implementation of a command
 
 ```rust
 // library code
-trait CommandCallback<E: Into<JumiaError>> {
-    async fn call(&self, client: &Client, interaction: &Interaction, args: &CommandArgs) -> Result<(), E>;
+trait CommandCallback {
+    type Error: Into<JumiaError>;
+
+    async fn call(&self, client: &Client, interaction: &Interaction, args: &CommandArgs) -> Result<(), Self::Error>;
 }
 
-impl<E, F> CommandCallback<E> for F
-where 
+impl<E, F, G> CommandCallback for F
+where
     E: Into<JumiaError>,
-    F: Fn(&Client, &Interaction, &CommandArgs) -> Result<(), BotError>,
+    F: Fn(&Client, &Interaction, &CommandArgs) -> G,
+    G: Future<Output = Result<(), E>>,
 {
+    type Error = E;
+
     async fn call(&self, client: &Client, interaction: &Interaction, args: &CommandArgs) -> Result<(), E> {
         self(client, interaction, args)
     }
