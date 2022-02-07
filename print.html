@@ -282,13 +282,16 @@ fn example() {
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// library code
-trait CommandCallback {
+trait CommandMiddleware {
     type Error: Into&lt;JumiaError&gt;;
 
     async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), Self::Error&gt;;
 }
 
-impl&lt;E, F, G&gt; CommandCallback&lt;E&gt; for F
+#[sealed]
+trait CommandCallback: CommandMiddleware { }
+
+impl&lt;E, F, G&gt; CommandCallback for F
     where
         E: Into&lt;JumiaError&gt;,
         F: Fn(&amp;Client, &amp;Interaction, &amp;CommandArgs) -&gt; G,
@@ -299,12 +302,6 @@ impl&lt;E, F, G&gt; CommandCallback&lt;E&gt; for F
     async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), E&gt; {
         self(ctx, interaction, args)
     }
-}
-
-trait CommandMiddleware {
-    type Error: Into&lt;JumiaError&gt;;
-    
-    async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), Self::Error&gt;;
 }
 
 struct GuildOnly {}
