@@ -245,7 +245,7 @@ trait GuildOnly&lt;F: CommandCallback&gt; {
 
 impl&lt;E: Into&lt;JumiaError&gt;, C: CommandCallback&lt;E&gt;, F: CommandCallback&gt; GuildOnly&lt;F&gt; for C
 {
-    fn guild_only(self) -&gt; F {
+    fn guild_only(callback: C) -&gt; F {
         |ctx, interaction, args| async move {
             if interaction.guild_id.is_none() {
                 interaction.reply(ctx, &quot;Command must be run in guild&quot;).await?;
@@ -316,11 +316,11 @@ impl GuildOnly {
 impl CommandMiddleware for GuildOnly {
     type Error = JumiaError;
 
-    async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), Self::Error&gt; {
+    async fn call(&amp;self, _: &amp;Context, interaction: &amp;Interaction, _: &amp;CommandArgs) -&gt; Result&lt;(), Self::Error&gt; {
         if interaction.guild_id.is_none() {
-            interaction.reply(ctx, &quot;Command must be run in guild&quot;).await?;
+            Err(JumiaError::message(&quot;Must be run in guilds&quot;))
         } else {
-            callback(ctx, interaction, args).await?;
+            Ok(())
         }
     }
 }
