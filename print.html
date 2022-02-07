@@ -154,15 +154,15 @@ to actually implementing stuff. We hope to provide this built in.</p>
     type Output;
 
     // Does the actual change without checking if it can
-    async fn execute(self, client: &amp;Client) -&gt; Result&lt;Self::Output, Error&gt;;
+    async fn execute(self, ctx: &amp;Context) -&gt; Result&lt;Self::Output, Error&gt;;
     
     // Check if the action can be carried out. This may not be valid in the
     // future, since we can't stop Discord from doing stuff while we process
-    async fn check(self, client: &amp;Client) -&gt; Result&lt;Self, Error&gt; { Ok(self) }
+    async fn check(self, _ctx: &amp;Context) -&gt; Result&lt;Self, Error&gt; { Ok(self) }
     
     // Check and then execute the action. This is the recommended way of running actions
-    async fn run(self, client: &amp;Client) -&gt; Result&lt;Self::Output, Error&gt; {
-        self.check(client).await?.execute(client).await
+    async fn run(self, ctx: &amp;Context) -&gt; Result&lt;Self::Output, Error&gt; {
+        self.check(ctx).await?.execute(ctx).await
     }
 }
 <span class="boring">}
