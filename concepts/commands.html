@@ -143,37 +143,44 @@
 </span>// library code
 trait CommandCallback {
     type Error: Into&lt;JumiaError&gt;;
-
-    async fn call(&amp;self, client: &amp;Client, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), Self::Error&gt;;
+    
+    async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), E&gt;;
 }
 
-impl&lt;E, F, G&gt; CommandCallback for F
-where
+impl&lt;E, F, G&gt; CommandCallback&lt;E&gt; for F
+where 
     E: Into&lt;JumiaError&gt;,
     F: Fn(&amp;Client, &amp;Interaction, &amp;CommandArgs) -&gt; G,
     G: Future&lt;Output = Result&lt;(), E&gt;&gt;,
 {
     type Error = E;
-
-    async fn call(&amp;self, client: &amp;Client, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), E&gt; {
-        self(client, interaction, args)
+    
+    async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), E&gt; {
+        self(ctx, interaction, args)
     }
 }
 
 // either library or user code
-fn guild_only(callback: impl CommandCallback) -&gt; impl CommandCallback {
-    |client, interaction, args| async move {
-        if interaction.guild_id.is_none() {
-            interaction.reply(client, &quot;Command must be run in guild&quot;).await?;
-        } else {
-            callback(client, interaction, args).await?;
+trait GuildOnly&lt;F: CommandCallback&gt; {
+    fn guild_only(callback: impl CommandCallback) -&gt; F;
+}
+
+impl&lt;E: Into&lt;JumiaError&gt;, C: CommandCallback&lt;E&gt;, F: CommandCallback&gt; GuildOnly&lt;F&gt; for C
+{
+    fn guild_only(self) -&gt; F {
+        |ctx, interaction, args| async move {
+            if interaction.guild_id.is_none() {
+                interaction.reply(ctx, &quot;Command must be run in guild&quot;).await?;
+            } else {
+                callback(ctx, interaction, args).await?;
+            }
         }
     }
 }
 
 // user code
-async fn echo_command(client: Client, interaction: Interaction, args: CommandArgs) -&gt; Result&lt;(), BotError&gt; {
-    interaction.reply(client, args.get_string(&quot;text&quot;)).await?;
+async fn echo_command(ctx: Context, interaction: Interaction, args: CommandArgs) -&gt; Result&lt;(), BotError&gt; {
+    interaction.reply(ctx, args.get_string(&quot;text&quot;)).await?;
     Ok(())
 }
 
@@ -186,7 +193,7 @@ fn example() {
                 .option(OptionBuilder::new()
                     .name(&quot;text&quot;)
                     .kind(OptionKind::String))
-                .callback(guild_only(echo_command))
+                .callback(echo_command.guild_only())
         );
 }
 <span class="boring">}
@@ -198,6 +205,8 @@ fn example() {
 <li>Pure router style isn't very good</li>
 <li>Custom permission system using storage</li>
 <li>Arg parsing using system similar to serenity-slash-decode</li>
+<li>Vicky suggested an alternative way of doing this:
+<a href="https://discord.com/channels/381880193251409931/381880193700069377/940070735349698600">d/serenity-rs Message Link</a></li>
 </ul>
 
                     </main>

@@ -149,7 +149,7 @@
     
     // Check if the action can be carried out. This may not be valid in the
     // future, since we can't stop Discord from doing stuff while we process
-    async fn check(self, client: &amp;Client) -&gt; Result&lt;Self, Error&gt;;
+    async fn check(self, client: &amp;Client) -&gt; Result&lt;Self, Error&gt; { Ok(self) }
     
     // Check and then execute the action. This is the recommended way of running actions
     async fn run(self, client: &amp;Client) -&gt; Result&lt;Self::Output, Error&gt; {
@@ -162,11 +162,11 @@
 <pre><pre class="playground"><code class="language-rust edition2021">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>async fn example(client: &amp;Client) {
+</span>async fn example(ctx: &amp;Context) {
     let _new_channel = CreateGuildChannel::category()
         .name(&quot;Category Channel&quot;)
         .create_channel(CreateGuildChannel::text().name(&quot;text-channel&quot;))
-        .run(client)
+        .run(ctx)
         .await
         .unwrap();
 }
