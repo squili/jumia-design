@@ -1,23 +1,25 @@
 # Commands
 
-This is an example of an implementation of a command
+## Middleware 1
+
+First version of middleware design
 
 ```rust
 // library code
 trait CommandCallback {
     type Error: Into<JumiaError>;
-    
-    async fn call(&self, ctx: &Context, interaction: &Interaction, args: &CommandArgs) -> Result<(), E>;
+
+    async fn call(&self, ctx: &Context, interaction: &Interaction, args: &CommandArgs) -> Result<(), Self::Error>;
 }
 
 impl<E, F, G> CommandCallback<E> for F
-where 
-    E: Into<JumiaError>,
-    F: Fn(&Client, &Interaction, &CommandArgs) -> G,
-    G: Future<Output = Result<(), E>>,
+    where
+        E: Into<JumiaError>,
+        F: Fn(&Client, &Interaction, &CommandArgs) -> G,
+        G: Future<Output = Result<(), E>>,
 {
     type Error = E;
-    
+
     async fn call(&self, ctx: &Context, interaction: &Interaction, args: &CommandArgs) -> Result<(), E> {
         self(ctx, interaction, args)
     }
@@ -57,6 +59,78 @@ fn example() {
                     .name("text")
                     .kind(OptionKind::String))
                 .callback(echo_command.guild_only())
+        );
+}
+```
+
+## Middleware 2
+
+Second version of middleware design
+
+```rust
+// library code
+trait CommandCallback {
+    type Error: Into<JumiaError>;
+
+    async fn call(&self, ctx: &Context, interaction: &Interaction, args: &CommandArgs) -> Result<(), Self::Error>;
+}
+
+impl<E, F, G> CommandCallback<E> for F
+    where
+        E: Into<JumiaError>,
+        F: Fn(&Client, &Interaction, &CommandArgs) -> G,
+        G: Future<Output = Result<(), E>>,
+{
+    type Error = E;
+
+    async fn call(&self, ctx: &Context, interaction: &Interaction, args: &CommandArgs) -> Result<(), E> {
+        self(ctx, interaction, args)
+    }
+}
+
+trait CommandMiddleware {
+    type Error: Into<JumiaError>;
+    
+    async fn call(&self, ctx: &Context, interaction: &Interaction, args: &CommandArgs) -> Result<(), Self::Error>;
+}
+
+struct GuildOnly {}
+
+impl GuildOnly {
+    pub fn new() -> Self { GuildOnly {} }
+}
+
+impl CommandMiddleware for GuildOnly {
+    type Error = JumiaError;
+
+    async fn call(&self, ctx: &Context, interaction: &Interaction, args: &CommandArgs) -> Result<(), Self::Error> {
+        if interaction.guild_id.is_none() {
+            interaction.reply(ctx, "Command must be run in guild").await?;
+        } else {
+            callback(ctx, interaction, args).await?;
+        }
+    }
+}
+
+// user code
+async fn echo_command(ctx: Context, interaction: Interaction, args: CommandArgs) -> Result<(), BotError> {
+    interaction.reply(ctx, args.get_string("text")).await?;
+    Ok(())
+}
+
+fn example() {
+    Client::builder()
+        .command(
+            // there could probably be a better way of formatting this, but for now it's good enough
+            CommandBuilder::new()
+                .name("echo")
+                .option(
+                    OptionBuilder::new()
+                        .name("text")
+                        .kind(OptionKind::String)
+                )
+                .with(GuildOnly::new())
+                .callback(echo_command)
         );
 }
 ```
