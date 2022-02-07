@@ -69,3 +69,4 @@ fn example() {
 - Arg parsing using system similar to serenity-slash-decode
 - Vicky suggested an alternative way of doing this:
   [d/serenity-rs Message Link](https://discord.com/channels/381880193251409931/381880193700069377/940070735349698600)
+- Look more at how web frameworks do this
