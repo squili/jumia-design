@@ -12,7 +12,7 @@ trait Action {
     
     // Check if the action can be carried out. This may not be valid in the
     // future, since we can't stop Discord from doing stuff while we process
-    async fn check(self, client: &Client) -> Result<Self, Error>;
+    async fn check(self, client: &Client) -> Result<Self, Error> { Ok(self) }
     
     // Check and then execute the action. This is the recommended way of running actions
     async fn run(self, client: &Client) -> Result<Self::Output, Error> {
@@ -23,11 +23,11 @@ trait Action {
 
 ### Example
 ```rust
-async fn example(client: &Client) {
+async fn example(ctx: &Context) {
     let _new_channel = CreateGuildChannel::category()
         .name("Category Channel")
         .create_channel(CreateGuildChannel::text().name("text-channel"))
-        .run(client)
+        .run(ctx)
         .await
         .unwrap();
 }
