@@ -69,13 +69,16 @@ Second version of middleware design
 
 ```rust
 // library code
-trait CommandCallback {
+trait CommandMiddleware {
     type Error: Into<JumiaError>;
 
     async fn call(&self, ctx: &Context, interaction: &Interaction, args: &CommandArgs) -> Result<(), Self::Error>;
 }
 
-impl<E, F, G> CommandCallback<E> for F
+#[sealed]
+trait CommandCallback: CommandMiddleware { }
+
+impl<E, F, G> CommandCallback for F
     where
         E: Into<JumiaError>,
         F: Fn(&Client, &Interaction, &CommandArgs) -> G,
@@ -86,12 +89,6 @@ impl<E, F, G> CommandCallback<E> for F
     async fn call(&self, ctx: &Context, interaction: &Interaction, args: &CommandArgs) -> Result<(), E> {
         self(ctx, interaction, args)
     }
-}
-
-trait CommandMiddleware {
-    type Error: Into<JumiaError>;
-    
-    async fn call(&self, ctx: &Context, interaction: &Interaction, args: &CommandArgs) -> Result<(), Self::Error>;
 }
 
 struct GuildOnly {}
