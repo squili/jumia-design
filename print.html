@@ -213,25 +213,26 @@ the <code>CreateOverwrite</code> builder, through the <code>Into&lt;RoleId&gt;</
 <li>Look into how rustc optimizes builders</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="commands"><a class="header" href="#commands">Commands</a></h1>
-<p>This is an example of an implementation of a command</p>
+<h2 id="middleware-1"><a class="header" href="#middleware-1">Middleware 1</a></h2>
+<p>First version of middleware design</p>
 <pre><pre class="playground"><code class="language-rust edition2021">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// library code
 trait CommandCallback {
     type Error: Into&lt;JumiaError&gt;;
-    
-    async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), E&gt;;
+
+    async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), Self::Error&gt;;
 }
 
 impl&lt;E, F, G&gt; CommandCallback&lt;E&gt; for F
-where 
-    E: Into&lt;JumiaError&gt;,
-    F: Fn(&amp;Client, &amp;Interaction, &amp;CommandArgs) -&gt; G,
-    G: Future&lt;Output = Result&lt;(), E&gt;&gt;,
+    where
+        E: Into&lt;JumiaError&gt;,
+        F: Fn(&amp;Client, &amp;Interaction, &amp;CommandArgs) -&gt; G,
+        G: Future&lt;Output = Result&lt;(), E&gt;&gt;,
 {
     type Error = E;
-    
+
     async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), E&gt; {
         self(ctx, interaction, args)
     }
@@ -271,6 +272,78 @@ fn example() {
                     .name(&quot;text&quot;)
                     .kind(OptionKind::String))
                 .callback(echo_command.guild_only())
+        );
+}
+<span class="boring">}
+</span></code></pre></pre>
+<h2 id="middleware-2"><a class="header" href="#middleware-2">Middleware 2</a></h2>
+<p>Second version of middleware design</p>
+<pre><pre class="playground"><code class="language-rust edition2021">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// library code
+trait CommandCallback {
+    type Error: Into&lt;JumiaError&gt;;
+
+    async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), Self::Error&gt;;
+}
+
+impl&lt;E, F, G&gt; CommandCallback&lt;E&gt; for F
+    where
+        E: Into&lt;JumiaError&gt;,
+        F: Fn(&amp;Client, &amp;Interaction, &amp;CommandArgs) -&gt; G,
+        G: Future&lt;Output = Result&lt;(), E&gt;&gt;,
+{
+    type Error = E;
+
+    async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), E&gt; {
+        self(ctx, interaction, args)
+    }
+}
+
+trait CommandMiddleware {
+    type Error: Into&lt;JumiaError&gt;;
+    
+    async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), Self::Error&gt;;
+}
+
+struct GuildOnly {}
+
+impl GuildOnly {
+    pub fn new() -&gt; Self { GuildOnly {} }
+}
+
+impl CommandMiddleware for GuildOnly {
+    type Error = JumiaError;
+
+    async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), Self::Error&gt; {
+        if interaction.guild_id.is_none() {
+            interaction.reply(ctx, &quot;Command must be run in guild&quot;).await?;
+        } else {
+            callback(ctx, interaction, args).await?;
+        }
+    }
+}
+
+// user code
+async fn echo_command(ctx: Context, interaction: Interaction, args: CommandArgs) -&gt; Result&lt;(), BotError&gt; {
+    interaction.reply(ctx, args.get_string(&quot;text&quot;)).await?;
+    Ok(())
+}
+
+fn example() {
+    Client::builder()
+        .command(
+            // there could probably be a better way of formatting this, but for now it's good enough
+            CommandBuilder::new()
+                .name(&quot;echo&quot;)
+                .option(
+                    OptionBuilder::new()
+                        .name(&quot;text&quot;)
+                        .kind(OptionKind::String)
+                )
+                .with(GuildOnly::new())
+                .callback(echo_command)
         );
 }
 <span class="boring">}
