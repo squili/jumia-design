@@ -1,8 +1,6 @@
 # Commands
 
-## Middleware 1
-
-First version of middleware design
+## Chained requirements
 
 ```rust
 // library code
@@ -52,7 +50,6 @@ async fn echo_command(ctx: Context, interaction: Interaction, args: CommandArgs)
 fn example() {
     Client::builder()
         .command(
-            // there could probably be a better way of formatting this, but for now it's good enough
             CommandBuilder::new()
                 .name("echo")
                 .option(OptionBuilder::new()
@@ -63,62 +60,17 @@ fn example() {
 }
 ```
 
-## Middleware 2
+### Nested requirements
 
-Second version of middleware design
+#### Concurrency
+
+`&` and `|` - evaluate lhs, check it, then evaluate rhs
+`&&` and `||` - evaluate lhs and rhs at the same time, then check
 
 ```rust
-// library code
-trait CommandMiddleware {
-    type Error: Into<JumiaError>;
-
-    async fn call(&self, ctx: &Context, interaction: &Interaction, args: &CommandArgs) -> Result<(), Self::Error>;
-}
-
-#[sealed]
-trait CommandCallback: CommandMiddleware { }
-
-impl<E, F, G> CommandCallback for F
-    where
-        E: Into<JumiaError>,
-        F: Fn(&Client, &Interaction, &CommandArgs) -> G,
-        G: Future<Output = Result<(), E>>,
-{
-    type Error = E;
-
-    async fn call(&self, ctx: &Context, interaction: &Interaction, args: &CommandArgs) -> Result<(), E> {
-        self(ctx, interaction, args)
-    }
-}
-
-struct GuildOnly {}
-
-impl GuildOnly {
-    pub fn new() -> Self { GuildOnly {} }
-}
-
-impl CommandMiddleware for GuildOnly {
-    type Error = JumiaError;
-
-    async fn call(&self, _: &Context, interaction: &Interaction, _: &CommandArgs) -> Result<(), Self::Error> {
-        if interaction.guild_id.is_none() {
-            Err(JumiaError::message("Must be run in guilds"))
-        } else {
-            Ok(())
-        }
-    }
-}
-
-// user code
-async fn echo_command(ctx: Context, interaction: Interaction, args: CommandArgs) -> Result<(), BotError> {
-    interaction.reply(ctx, args.get_string("text")).await?;
-    Ok(())
-}
-
 fn example() {
     Client::builder()
         .command(
-            // there could probably be a better way of formatting this, but for now it's good enough
             CommandBuilder::new()
                 .name("echo")
                 .option(
@@ -126,7 +78,11 @@ fn example() {
                         .name("text")
                         .kind(OptionKind::String)
                 )
-                .with(GuildOnly::new())
+                // ---
+                .require(RequireGuild() && RequireCustom(123))
+                // equivalent to
+                .require(ConcurrentOr(RequireGuild(), RequireCustom(123)))
+                // ---
                 .callback(echo_command)
         );
 }
@@ -141,3 +97,4 @@ fn example() {
 - Vicky suggested an alternative way of doing this:
   [d/serenity-rs Message Link](https://discord.com/channels/381880193251409931/381880193700069377/940070735349698600)
 - Look more at how web frameworks do this
+- Maybe we should use "check" instead of "require", since it's more familiar wording
