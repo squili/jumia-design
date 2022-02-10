@@ -32,7 +32,7 @@ fn example() {
                 // ---
                 .require(RequireGuild() && RequireCustom(123))
                 // equivalent to
-                .require(ConcurrentOr(RequireGuild(), RequireCustom(123)))
+                .require(ConcurrentAnd(RequireGuild(), RequireCustom(123)))
                 // ---
                 .callback(echo_command)
         );
