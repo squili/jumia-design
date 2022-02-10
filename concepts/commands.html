@@ -136,75 +136,23 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="commands"><a class="header" href="#commands">Commands</a></h1>
-<h2 id="chained-requirements"><a class="header" href="#chained-requirements">Chained requirements</a></h2>
+<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<h4 id="concurrency"><a class="header" href="#concurrency">Concurrency</a></h4>
+<p><code>&amp;</code> and <code>|</code> - evaluate lhs, check it, then evaluate rhs
+<code>&amp;&amp;</code> and <code>||</code> - evaluate lhs and rhs at the same time, then check</p>
+<h4 id="axum-style-extract-arguments"><a class="header" href="#axum-style-extract-arguments">Axum-style extract arguments</a></h4>
+<p>Aren't they cool?</p>
 <pre><pre class="playground"><code class="language-rust edition2021">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// library code
-trait CommandCallback {
-    type Error: Into&lt;JumiaError&gt;;
+</span>named_argument!(EchoText, &quot;text&quot;, String);
 
-    async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), Self::Error&gt;;
-}
-
-impl&lt;E, F, G&gt; CommandCallback&lt;E&gt; for F
-    where
-        E: Into&lt;JumiaError&gt;,
-        F: Fn(&amp;Client, &amp;Interaction, &amp;CommandArgs) -&gt; G,
-        G: Future&lt;Output = Result&lt;(), E&gt;&gt;,
-{
-    type Error = E;
-
-    async fn call(&amp;self, ctx: &amp;Context, interaction: &amp;Interaction, args: &amp;CommandArgs) -&gt; Result&lt;(), E&gt; {
-        self(ctx, interaction, args)
-    }
-}
-
-// either library or user code
-trait GuildOnly&lt;F: CommandCallback&gt; {
-    fn guild_only(callback: impl CommandCallback) -&gt; F;
-}
-
-impl&lt;E: Into&lt;JumiaError&gt;, C: CommandCallback&lt;E&gt;, F: CommandCallback&gt; GuildOnly&lt;F&gt; for C
-{
-    fn guild_only(callback: C) -&gt; F {
-        |ctx, interaction, args| async move {
-            if interaction.guild_id.is_none() {
-                interaction.reply(ctx, &quot;Command must be run in guild&quot;).await?;
-            } else {
-                callback(ctx, interaction, args).await?;
-            }
-        }
-    }
-}
-
-// user code
-async fn echo_command(ctx: Context, interaction: Interaction, args: CommandArgs) -&gt; Result&lt;(), BotError&gt; {
-    interaction.reply(ctx, args.get_string(&quot;text&quot;)).await?;
+async fn echo_command(ctx: extract::Context, text: extract::Arg&lt;EchoText&gt;) -&gt; Result&lt;(), BotError&gt; {
+    ctx.interaction.reply(ctx, text).await?;
     Ok(())
 }
 
 fn example() {
-    Client::builder()
-        .command(
-            CommandBuilder::new()
-                .name(&quot;echo&quot;)
-                .option(OptionBuilder::new()
-                    .name(&quot;text&quot;)
-                    .kind(OptionKind::String))
-                .callback(echo_command.guild_only())
-        );
-}
-<span class="boring">}
-</span></code></pre></pre>
-<h3 id="nested-requirements"><a class="header" href="#nested-requirements">Nested requirements</a></h3>
-<h4 id="concurrency"><a class="header" href="#concurrency">Concurrency</a></h4>
-<p><code>&amp;</code> and <code>|</code> - evaluate lhs, check it, then evaluate rhs
-<code>&amp;&amp;</code> and <code>||</code> - evaluate lhs and rhs at the same time, then check</p>
-<pre><pre class="playground"><code class="language-rust edition2021">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn example() {
     Client::builder()
         .command(
             CommandBuilder::new()
@@ -217,7 +165,7 @@ fn example() {
                 // ---
                 .require(RequireGuild() &amp;&amp; RequireCustom(123))
                 // equivalent to
-                .require(ConcurrentOr(RequireGuild(), RequireCustom(123)))
+                .require(ConcurrentAnd(RequireGuild(), RequireCustom(123)))
                 // ---
                 .callback(echo_command)
         );
@@ -233,7 +181,6 @@ fn example() {
 <li>Arg parsing using system similar to serenity-slash-decode</li>
 <li>Vicky suggested an alternative way of doing this:
 <a href="https://discord.com/channels/381880193251409931/381880193700069377/940070735349698600">d/serenity-rs Message Link</a></li>
-<li>Look more at how web frameworks do this</li>
 <li>Maybe we should use &quot;check&quot; instead of &quot;require&quot;, since it's more familiar wording</li>
 </ul>
 
