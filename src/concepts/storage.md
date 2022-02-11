@@ -20,6 +20,7 @@ trait StorageKey {
 trait StorageBackend: Sized {
     type Error: std::error::Error;
 
+    // registers a new key type, doing any necessary setup
     async fn register<K: StorageKey + Send>(&self) -> Result<(), Self::Error>;
     async fn get<K: StorageKey + Send>(&self, key: K) -> Result<Option<K::Value>, Self::Error>;
     // return previous value, if any
