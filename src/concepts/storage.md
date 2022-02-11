@@ -22,7 +22,8 @@ trait StorageBackend: Sized {
 
     async fn register<K: StorageKey + Send>(&self) -> Result<(), Self::Error>;
     async fn get<K: StorageKey + Send>(&self, key: K) -> Result<Option<K::Value>, Self::Error>;
-    async fn set<K: StorageKey + Send>(&self, key: K, value: K::Value) -> Result<(), Self::Error>;
+    // return previous value, if any
+    async fn set<K: StorageKey + Send>(&self, key: K, value: K::Value) -> Result<Option<K::Value>, Self::Error>;
 }
 ```
 
