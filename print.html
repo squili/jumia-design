@@ -280,6 +280,7 @@ storage key must implement the <code>StorageKey</code> trait.</p>
 trait StorageBackend: Sized {
     type Error: std::error::Error;
 
+    // registers a new key type, doing any necessary setup
     async fn register&lt;K: StorageKey + Send&gt;(&amp;self) -&gt; Result&lt;(), Self::Error&gt;;
     async fn get&lt;K: StorageKey + Send&gt;(&amp;self, key: K) -&gt; Result&lt;Option&lt;K::Value&gt;, Self::Error&gt;;
     // return previous value, if any
